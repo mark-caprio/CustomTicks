@@ -1,19 +1,20 @@
-Mathematica CustomTicks Package
-===============================
+CustomTicks package for Mathematica
+===================================
 
-CustomTicks package for Mathematica from Mark Caprio. 
-See for original code:
+Mark A. Caprio
+University of Notre Dame
 
-http://scidraw.nd.edu/
+The CustomTicks package for Mathematica is also available at:
 
-http://library.wolfram.com/infocenter/MathSource/5599/
+ - http://scidraw.nd.edu/
+
+ - http://library.wolfram.com/infocenter/MathSource/5599/
 
 ## Install
 
-Downland the `CustomTicks.m` and import package or run:
+Download the file `CustomTicks.m` and import package or run:
 
 `Get["https://raw.githubusercontent.com/mark-caprio/CustomTicks/master/CustomTicks.m"]`
-
 
 ## Versions
 
