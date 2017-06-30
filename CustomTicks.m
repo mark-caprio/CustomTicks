@@ -61,7 +61,7 @@
  *)
 
 (****************************************************************
-begin package
+ * begin package
  ****************************************************************)
 
 
@@ -72,7 +72,7 @@ Unprotect[Evaluate[$Context<>"*"]];
 
 
 (****************************************************************
-messages
+ * messages
  ****************************************************************)
 
 (* usage messages *)
@@ -132,7 +132,7 @@ TickListQ::usage="TickListQ[x] returns True if x is a list of valid tick specifi
 
 
 (****************************************************************
-begin private context
+ * begin private context
  ****************************************************************)
 
 
@@ -140,7 +140,7 @@ Begin["`Private`"];
 
 
 (****************************************************************
-arithmetic utility functions
+ * arithmetic utility functions
  ****************************************************************)
 
 
@@ -168,20 +168,20 @@ ExtendRegion[PRange:{{x1_,x2_},{y1_,y2_}},PFrac:{{fx1_,fx2_},{fy1_,fy2_}}]:=PRan
 
 Options[ApproxEqual]={Chop->1*^-10};
 ApproxEqual[x_?NumericQ,y_?NumericQ,Opts___?OptionQ]:=Module[
-	{FullOpts=Flatten[{Opts,Options[ApproxEqual]}]},
-	Chop[x-y,Chop/.FullOpts]==0
+  {FullOpts=Flatten[{Opts,Options[ApproxEqual]}]},
+  Chop[x-y,Chop/.FullOpts]==0
 						      ];
 ApproxEqual[x_?NumericQ,_DirectedInfinity]:=False;
 ApproxEqual[_DirectedInfinity,x_?NumericQ]:=False;
 ApproxInRange[{x1p_,x2p_},x_,Opts___?OptionQ]:=With[
-	{x1=Min[x1p,x2p],x2=Max[x1p,x2p]},
-	ApproxEqual[x,x1,Opts]||((x1<=x)&&(x<=x2))||ApproxEqual[x,x2,Opts]
+  {x1=Min[x1p,x2p],x2=Max[x1p,x2p]},
+  ApproxEqual[x,x1,Opts]||((x1<=x)&&(x<=x2))||ApproxEqual[x,x2,Opts]
 					       ];
 ApproxIntegerQ[x_?NumericQ,Opts___?OptionQ]:=ApproxEqual[Round[x],x,Opts];
 
 
 (****************************************************************
-tick label formatting utility functions
+ * tick label formatting utility functions
  ****************************************************************)
 
 
@@ -200,21 +200,22 @@ Algorithm:
 Options[FractionDigits]={FractionDigitsBase->10,Limit->Infinity,Chop->1*^-8};
 
 
-FractionDigits[x_?NumericQ,Opts___?OptionQ]:=Module[
-	{
-		FullOpts=Flatten[{Opts,Options[FractionDigits]}],
-		Value,NumToRight,OptFractionDigitsBase,OptLimit
-	},
-	Value=N[x];
-	OptFractionDigitsBase=FractionDigitsBase/.FullOpts;
-	OptLimit=Limit/.FullOpts;
-	NumToRight=0;
-	While[!ApproxIntegerQ[Value,Chop->(Chop/.FullOpts)]&&(NumToRight<OptLimit),
-	      Value*=OptFractionDigitsBase;
-	      NumToRight++
-	];
-	NumToRight
-					     ];
+FractionDigits[x_?NumericQ,Opts___?OptionQ]:=
+  Module[
+    {
+      FullOpts=Flatten[{Opts,Options[FractionDigits]}],
+      Value,NumToRight,OptFractionDigitsBase,OptLimit
+    },
+    Value=N[x];
+    OptFractionDigitsBase=FractionDigitsBase/.FullOpts;
+    OptLimit=Limit/.FullOpts;
+    NumToRight=0;
+    While[!ApproxIntegerQ[Value,Chop->(Chop/.FullOpts)]&&(NumToRight<OptLimit),
+	  Value*=OptFractionDigitsBase;
+	  NumToRight++
+    ];
+    NumToRight
+  ];
 
 
 (* fixed-point decimal notation *)
@@ -222,54 +223,57 @@ FractionDigits[x_?NumericQ,Opts___?OptionQ]:=Module[
 
 FixedPointForm::leftdigits="Insufficient left digits (`1`) specified for formatting of number (`2`).  Consider using automatic version FixedPointForm[x,r].";FixedPointForm::numbersigns="Unsupported form of NumberSigns.";
 Options[FixedPointForm]={NumberSigns->{"-",""},NumberPoint->".",SignPadding->False,Debug->False};
-FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?OptionQ]:=Module[
-	{
-		FullOpts=Flatten[{Opts,Options[FixedPointForm]}],
-		sx,mx,SignString,LeftDigits,RightDigits,SeparatorString,SignChars,PaddingChars,
-		NaturalLeftDigits,
-		PartialSigns,FullSigns,
-		AutoOpts
-	},
-	sx=Sign[x];
-	mx=Abs[N[x]];
-	(*LeftDigits=IntegerDigits[IntegerPart[mx]];*)
-	(*RightDigits=First[RealDigits[mx,10,r,-1]];*)
-	(*RightDigits=First[RealDigits[FractionalPart[mx],10,r,-1]];*)
-	(*RightDigits=IntegerDigits[Round[FractionalPart[mx]*10^r],10,r];*) 
-	(* round rather than truncate, to avoid, e.g., 2.3999999999 formatting as 2.3 *)
-	LeftDigits=IntegerDigits[IntegerPart[Round[mx*10^r]/10^r]];
-	RightDigits=IntegerDigits[Round[mx*10^r],10,r];
-	If[
-		(Debug/.FullOpts),
-		Print[{x,l,r},": ",{sx,mx,LeftDigits,RightDigits}]
-	];
-	SeparatorString=If[r==0,"",(NumberPoint/.FullOpts)];
-	NaturalLeftDigits=Length[LeftDigits];
-	If[l<NaturalLeftDigits,
-	   Message[FixedPointForm::leftdigits,l,x]
-	];
-	FullSigns=Switch[
-		(NumberSigns/.FullOpts),
-		Automatic,{{"-"},{}},
-		{_String,_String},
-		PartialSigns=Characters/@(NumberSigns/.FullOpts);
-		PadLeft[#,Max[Length/@PartialSigns]," "]&/@PartialSigns,
-		_,Message[FixedPointForm::numbersigns];{{"-"},{" "}}
-		  ];
-	SignChars=Switch[
-		sx,
-		-1,First[FullSigns],
-		+1|0,Last[FullSigns]
-		  ];
-	PaddingChars=Switch[
-		SignPadding/.FullOpts,
-		False,PadLeft[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "],
-		True,PadRight[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "]
-		     ];
-	StringJoin@@Join[PaddingChars,ToString/@LeftDigits,{SeparatorString},ToString/@RightDigits]
-											  ];
-FixedPointForm[x_?NumberQ,RightDigits_Integer?NonNegative,Opts___?OptionQ]:=FixedPointForm[x,{Length[IntegerDigits[IntegerPart[N[x]]]],RightDigits},Opts];
-FixedPointForm[x:Except[_?NumberQ],{l_Integer?NonNegative,r_Integer?NonNegative}|(RightDigits_Integer?NonNegative),Opts___?OptionQ]:=x;
+FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?OptionQ]:=
+  Module[
+    {
+      FullOpts=Flatten[{Opts,Options[FixedPointForm]}],
+      sx,mx,SignString,LeftDigits,RightDigits,SeparatorString,SignChars,PaddingChars,
+      NaturalLeftDigits,
+      PartialSigns,FullSigns,
+      AutoOpts
+    },
+    sx=Sign[x];
+    mx=Abs[N[x]];
+    (*LeftDigits=IntegerDigits[IntegerPart[mx]];*)
+    (*RightDigits=First[RealDigits[mx,10,r,-1]];*)
+    (*RightDigits=First[RealDigits[FractionalPart[mx],10,r,-1]];*)
+    (*RightDigits=IntegerDigits[Round[FractionalPart[mx]*10^r],10,r];*) 
+    (* round rather than truncate, to avoid, e.g., 2.3999999999 formatting as 2.3 *)
+    LeftDigits=IntegerDigits[IntegerPart[Round[mx*10^r]/10^r]];
+    RightDigits=IntegerDigits[Round[mx*10^r],10,r];
+    If[
+      (Debug/.FullOpts),
+      Print[{x,l,r},": ",{sx,mx,LeftDigits,RightDigits}]
+    ];
+    SeparatorString=If[r==0,"",(NumberPoint/.FullOpts)];
+    NaturalLeftDigits=Length[LeftDigits];
+    If[l<NaturalLeftDigits,
+       Message[FixedPointForm::leftdigits,l,x]
+    ];
+    FullSigns=Switch[
+      (NumberSigns/.FullOpts),
+      Automatic,{{"-"},{}},
+      {_String,_String},
+      PartialSigns=Characters/@(NumberSigns/.FullOpts);
+      PadLeft[#,Max[Length/@PartialSigns]," "]&/@PartialSigns,
+      _,Message[FixedPointForm::numbersigns];{{"-"},{" "}}
+	      ];
+    SignChars=Switch[
+      sx,
+      -1,First[FullSigns],
+      +1|0,Last[FullSigns]
+	      ];
+    PaddingChars=Switch[
+      SignPadding/.FullOpts,
+      False,PadLeft[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "],
+      True,PadRight[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "]
+		 ];
+    StringJoin@@Join[PaddingChars,ToString/@LeftDigits,{SeparatorString},ToString/@RightDigits]
+  ];
+FixedPointForm[x_?NumberQ,RightDigits_Integer?NonNegative,Opts___?OptionQ]:=
+  FixedPointForm[x,{Length[IntegerDigits[IntegerPart[N[x]]]],RightDigits},Opts];
+FixedPointForm[x:Except[_?NumberQ],{l_Integer?NonNegative,r_Integer?NonNegative}|(RightDigits_Integer?NonNegative),Opts___?OptionQ]:=
+  x;
 
 
 (* label formatting function *)
@@ -286,33 +290,34 @@ Allow in all calculations for empty major coordinate list.
 Pass through options to FixedPointForm.  For positive ticks, generally want space for sign suppressed in padding (by use of FixedPointForm with NumberSigns->Automatic). *)
 
 
-FixedTickFunction[ValueList_List,DecimalDigits:(Automatic|(_Integer)),Opts___?OptionQ]:=Module[
-	{
-		LeftDigits,RightDigits,x
-	},
-	LeftDigits=If[
-		ValueList==={},
-		0,
-		Length[IntegerDigits[IntegerPart[Max[Abs[ValueList]]]]]
-		   ];
-	RightDigits=If[
-		DecimalDigits===Automatic,
-		If[
-			ValueList==={},
-			0,
-			Max[FractionDigits/@ValueList]
-		],
-		DecimalDigits
-		    ];
-	With[
-		{ld=LeftDigits,rd=RightDigits},
-		Function[x,FixedPointForm[x,{ld,rd},Opts,NumberSigns->Automatic]]
-	]
-											];
+FixedTickFunction[ValueList_List,DecimalDigits:(Automatic|(_Integer)),Opts___?OptionQ]:=
+  Module[
+    {
+      LeftDigits,RightDigits,x
+    },
+    LeftDigits=If[
+      ValueList==={},
+      0,
+      Length[IntegerDigits[IntegerPart[Max[Abs[ValueList]]]]]
+	       ];
+    RightDigits=If[
+      DecimalDigits===Automatic,
+      If[
+	ValueList==={},
+	0,
+	Max[FractionDigits/@ValueList]
+      ],
+      DecimalDigits
+		];
+    With[
+      {ld=LeftDigits,rd=RightDigits},
+      Function[x,FixedPointForm[x,{ld,rd},Opts,NumberSigns->Automatic]]
+    ]
+  ];
 
 
 (****************************************************************
-tick length utility
+ * tick length utility
  ****************************************************************)
 
 (* notes on tick lengths:
@@ -328,247 +333,258 @@ given tick length option may be either a single number or an {in,out} pair
  *)
 
 
-ResolveTickLength[d_?NumericQ,TickLengthScale_?NumericQ,TickDirection:(In|Out|All),TickReverse:(True|False)]:=Module[
-	{LengthPair},
+ResolveTickLength[d_?NumericQ,TickLengthScale_?NumericQ,TickDirection:(In|Out|All),TickReverse:(True|False)]:=
+  Module[
+    {LengthPair},
 
-	(* upgrade single length to {in,out} pair *)
-	LengthPair=Switch[TickDirection,
-			  In,{d,0},
-			  Out,{0,d},
-			  All,{d,d}
-		   ];
+    (* upgrade single length to {in,out} pair *)
+    LengthPair=Switch[TickDirection,
+		      In,{d,0},
+		      Out,{0,d},
+		      All,{d,d}
+	       ];
 
-	(* implement legacy direction reversing option *)
-	LengthPair=If[TickReverse,Reverse,Identity]@LengthPair;
+    (* implement legacy direction reversing option *)
+    LengthPair=If[TickReverse,Reverse,Identity]@LengthPair;
 
-	(* scale length *)
-	TickLengthScale*LengthPair
-													      ];
+    (* scale length *)
+    TickLengthScale*LengthPair
+  ];
 
 
-ResolveTickLength[{d1_?NumericQ,d2_?NumericQ},TickLengthScale_?NumericQ,TickDirection:(In|Out|All),TickReverse:(True|False)]:=Module[
-	{LengthPair},
+ResolveTickLength[{d1_?NumericQ,d2_?NumericQ},TickLengthScale_?NumericQ,TickDirection:(In|Out|All),TickReverse:(True|False)]:=
+  Module[
+    {LengthPair},
 
-	(* ignore TickDirection if given {in,out} pair *)
-	LengthPair={d1,d2};
+    (* ignore TickDirection if given {in,out} pair *)
+    LengthPair={d1,d2};
 
-	(* implement legacy direction reversing option *)
-	LengthPair=If[TickReverse,Reverse,Identity]@LengthPair;
+    (* implement legacy direction reversing option *)
+    LengthPair=If[TickReverse,Reverse,Identity]@LengthPair;
 
-	(* scale length *)
-	TickLengthScale*LengthPair
-															      ];
+    (* scale length *)
+    TickLengthScale*LengthPair
+  ];
 
 
 (****************************************************************
-Linear ticks
+ * Linear ticks
  ****************************************************************)
 
 (* Option MinorTickIndexRange is only respected by the iterating form of LinTicks. *)
 
 
 Options[LinTicks]={
-	(* tick options *)
-	ExtraTicks->{},TickPreTransformation->Identity,TickPostTransformation->Identity,ShowFirst->True,ShowLast->True,ShowTickLabels->True,ShowMinorTickLabels->False,ShowMinorTicks->True,TickLabelStart->0,TickLabelStep->1,TickRange->{-Infinity,Infinity},TickLabelRange->{-Infinity,Infinity},TickLabelFunction->Automatic,DecimalDigits->Automatic,MajorTickLength->0.010,MinorTickLength->0.005,MinorTickLabelStyle->None,TickLengthScale->1,TickDirection->In,TickReverse->False,MajorTickStyle->{},MinorTickStyle->{},MinorTickIndexRange->{1,Infinity},MinorTickIndexTransformation->Identity,TickTest->(True&),TickLabelTest->(True&),
+  (* tick options *)
+  ExtraTicks->{},
+  TickPreTransformation->Identity,TickPostTransformation->Identity,
+  ShowFirst->True,ShowLast->True,ShowTickLabels->True,ShowMinorTickLabels->False,ShowMinorTicks->True,
+  TickLabelStart->0,TickLabelStep->1,TickRange->{-Infinity,Infinity},TickLabelRange->{-Infinity,Infinity},TickLabelFunction->Automatic,
+  DecimalDigits->Automatic,
+  MajorTickLength->0.010,MinorTickLength->0.005,MinorTickLabelStyle->None,TickLengthScale->1,TickDirection->In,TickReverse->False,
+  MajorTickStyle->{},MinorTickStyle->{},MinorTickIndexRange->{1,Infinity},MinorTickIndexTransformation->Identity,
+  TickTest->(True&),TickLabelTest->(True&),
 
-	(* pass through to FixedPointForm *)
-	NumberSigns->Automatic,  (* suppress space before positive numbers *)
-	NumberPoint->".",(* SignPadding is pretty irrelevant to ticks, so omit... *)
+  (* pass through to FixedPointForm *)
+  NumberSigns->Automatic,  (* suppress space before positive numbers *)
+  NumberPoint->".",(* SignPadding is pretty irrelevant to ticks, so omit... *)
 
-	(* debugging *)
-	Debug->False
+  (* debugging *)
+  Debug->False
 };
 
 
-LinTicks[RawMajorCoordList_List,RawMinorCoordList_List,Opts___]:=Module[
-	{
-		FullOpts= Flatten[{Opts,Options[LinTicks]}],
-		MajorCoordList,
-		LabeledCoordList,
-		MinorCoordList,
-		MajorTickList,
-		MinorTickList,
-		UsedTickLabelFunction,
-		DefaultTickLabelFunction,
-		TickValue,
-		TickPosition,
-		TickLabel,
-		TickLength,
-		TickStyle,
-		TickLabelStyleWrapper,
-		i
-	},
+LinTicks[RawMajorCoordList_List,RawMinorCoordList_List,Opts___]:=
+  Module[
+    {
+      FullOpts= Flatten[{Opts,Options[LinTicks]}],
+      MajorCoordList,
+      LabeledCoordList,
+      MinorCoordList,
+      MajorTickList,
+      MinorTickList,
+      UsedTickLabelFunction,
+      DefaultTickLabelFunction,
+      TickValue,
+      TickPosition,
+      TickLabel,
+      TickLength,
+      TickStyle,
+      TickLabelStyleWrapper,
+      i
+    },
 
-	(* make major ticks *)
-	MajorCoordList=Select[
-		(TickPreTransformation/.FullOpts)/@Union[RawMajorCoordList,ExtraTicks/.FullOpts],
-		(ApproxInRange[(TickRange/.FullOpts),#]&&(TickTest/.FullOpts)[#])&
-		       ];
-	LabeledCoordList=Flatten[Table[
-		TickValue=MajorCoordList[[i]];
-		If[
-			(ShowTickLabels/.FullOpts)
-			&&ApproxInRange[(TickLabelRange/.FullOpts),TickValue]
-			&&(Mod[i-1,(TickLabelStep/.FullOpts)]==(TickLabelStart/.FullOpts))
-			&&((i!=1)||(ShowFirst/.FullOpts))
-			&&((i!=Length[MajorCoordList])||(ShowLast/.FullOpts))
-			&&(TickLabelTest/.FullOpts)[TickValue],
-			TickValue,
-			{}
-		],
-		{i,1,Length[MajorCoordList]}
-			 ]];
-	DefaultTickLabelFunction=FixedTickFunction[
-		LabeledCoordList,
-		DecimalDigits/.FullOpts,
-		FilterRules[FullOpts,Options[FixedPointForm]]
-				 ];
-	UsedTickLabelFunction=Switch[
-		(TickLabelFunction/.FullOpts),
-		Automatic,(#2&),
-		_,(TickLabelFunction/.FullOpts)
-			      ];
-	TickLength=ResolveTickLength[
-		(MajorTickLength/.FullOpts),(TickLengthScale/.FullOpts),
-		(TickDirection/.FullOpts),(TickReverse/.FullOpts)
+    (* make major ticks *)
+    MajorCoordList=Select[
+      (TickPreTransformation/.FullOpts)/@Union[RawMajorCoordList,ExtraTicks/.FullOpts],
+      (ApproxInRange[(TickRange/.FullOpts),#]&&(TickTest/.FullOpts)[#])&
 		   ];
-	TickStyle=(MajorTickStyle/.FullOpts);
-	MajorTickList=Table[
-
-		(* calculate tick value *)
-		TickValue=MajorCoordList[[i]];
-
-		(* calculate coordinate for drawing tick *)
-		TickPosition=(TickPostTransformation/.FullOpts)[TickValue];
-
-		(* construct label, or null string if it should be suppressed -- if: tick labels shown,  tick is in TickLabelRange, in designated modular cycle if only a cycle of major ticks are to be labeled, not explicitly suppressed as first or last label; will only then be used if tick is also in TickRange *)
-		TickLabel=If[
-			(ShowTickLabels/.FullOpts)
-			&&ApproxInRange[(TickLabelRange/.FullOpts),TickValue]
-			&&(Mod[i-1,(TickLabelStep/.FullOpts)]==(TickLabelStart/.FullOpts))
-			&&((i!=1)||(ShowFirst/.FullOpts))
-			&&((i!=Length[MajorCoordList])||(ShowLast/.FullOpts)),
-			UsedTickLabelFunction[TickValue,DefaultTickLabelFunction[TickValue]],
-			""
+    LabeledCoordList=Flatten[Table[
+      TickValue=MajorCoordList[[i]];
+      If[
+	(ShowTickLabels/.FullOpts)
+	&&ApproxInRange[(TickLabelRange/.FullOpts),TickValue]
+	&&(Mod[i-1,(TickLabelStep/.FullOpts)]==(TickLabelStart/.FullOpts))
+	&&((i!=1)||(ShowFirst/.FullOpts))
+	&&((i!=Length[MajorCoordList])||(ShowLast/.FullOpts))
+	&&(TickLabelTest/.FullOpts)[TickValue],
+	TickValue,
+	{}
+      ],
+      {i,1,Length[MajorCoordList]}
+		     ]];
+    DefaultTickLabelFunction=FixedTickFunction[
+      LabeledCoordList,
+      DecimalDigits/.FullOpts,
+      FilterRules[FullOpts,Options[FixedPointForm]]
+			     ];
+    UsedTickLabelFunction=Switch[
+      (TickLabelFunction/.FullOpts),
+      Automatic,(#2&),
+      _,(TickLabelFunction/.FullOpts)
 			  ];
+    TickLength=ResolveTickLength[
+      (MajorTickLength/.FullOpts),(TickLengthScale/.FullOpts),
+      (TickDirection/.FullOpts),(TickReverse/.FullOpts)
+	       ];
+    TickStyle=(MajorTickStyle/.FullOpts);
+    MajorTickList=Table[
 
-		(* make tick *)
-		{TickPosition,TickLabel,TickLength,TickStyle},
+      (* calculate tick value *)
+      TickValue=MajorCoordList[[i]];
 
-		{i,1,Length[MajorCoordList]}
-		      ];
+      (* calculate coordinate for drawing tick *)
+      TickPosition=(TickPostTransformation/.FullOpts)[TickValue];
 
-	(* make minor ticks *)
-	MinorCoordList=Select[
-		(TickPreTransformation/.FullOpts)/@RawMinorCoordList,
-		(ApproxInRange[(TickRange/.FullOpts),#]&&(TickTest/.FullOpts)[#])&
-		       ];
-	TickLength=ResolveTickLength[
-		(MinorTickLength/.FullOpts),(TickLengthScale/.FullOpts),
-		(TickDirection/.FullOpts),(TickReverse/.FullOpts)
+      (* construct label, or null string if it should be suppressed -- if: tick labels shown,  tick is in TickLabelRange, in designated modular cycle if only a cycle of major ticks are to be labeled, not explicitly suppressed as first or last label; will only then be used if tick is also in TickRange *)
+      TickLabel=If[
+	(ShowTickLabels/.FullOpts)
+	&&ApproxInRange[(TickLabelRange/.FullOpts),TickValue]
+	&&(Mod[i-1,(TickLabelStep/.FullOpts)]==(TickLabelStart/.FullOpts))
+	&&((i!=1)||(ShowFirst/.FullOpts))
+	&&((i!=Length[MajorCoordList])||(ShowLast/.FullOpts)),
+	UsedTickLabelFunction[TickValue,DefaultTickLabelFunction[TickValue]],
+	""
+		];
+
+      (* make tick *)
+      {TickPosition,TickLabel,TickLength,TickStyle},
+
+      {i,1,Length[MajorCoordList]}
+		  ];
+
+    (* make minor ticks *)
+    MinorCoordList=Select[
+      (TickPreTransformation/.FullOpts)/@RawMinorCoordList,
+      (ApproxInRange[(TickRange/.FullOpts),#]&&(TickTest/.FullOpts)[#])&
 		   ];
-	TickStyle=(MinorTickStyle/.FullOpts);
-	TickLabelStyleWrapper=With[
-		{UsedMinorTickLabelStyle=(MinorTickLabelStyle/.FullOpts)},
-		If[
-			UsedMinorTickLabelStyle=!=None,
-			(Style[#,UsedMinorTickLabelStyle]&),
-			Identity
-		]
-			      ];
-	MinorTickList=If[(ShowMinorTicks/.FullOpts),
-			 Table[
+    TickLength=ResolveTickLength[
+      (MinorTickLength/.FullOpts),(TickLengthScale/.FullOpts),
+      (TickDirection/.FullOpts),(TickReverse/.FullOpts)
+	       ];
+    TickStyle=(MinorTickStyle/.FullOpts);
+    TickLabelStyleWrapper=With[
+      {UsedMinorTickLabelStyle=(MinorTickLabelStyle/.FullOpts)},
+      If[
+	UsedMinorTickLabelStyle=!=None,
+	(Style[#,UsedMinorTickLabelStyle]&),
+	Identity
+      ]
+			  ];
+    MinorTickList=If[(ShowMinorTicks/.FullOpts),
+		     Table[
 
-				 (* calculate tick value *)
-				 TickValue=MinorCoordList[[i]];
+		       (* calculate tick value *)
+		       TickValue=MinorCoordList[[i]];
 
-				 (* calculate coordinate for drawing tick *)
-				 TickPosition=(TickPostTransformation/.FullOpts)[TickValue];
+		       (* calculate coordinate for drawing tick *)
+		       TickPosition=(TickPostTransformation/.FullOpts)[TickValue];
 
-				 (* construct label, or null string if it should be suppressed -- if: tick labels shown, *minor* tick labels shown, tick is in TickLabelRange; will only then be used if tick is also in TickRange *)
-				 TickLabel=If[
-					 (ShowTickLabels/.FullOpts)&&(ShowMinorTickLabels/.FullOpts)
-					 &&ApproxInRange[(TickLabelRange/.FullOpts),TickValue],
-					 TickLabelStyleWrapper[UsedTickLabelFunction[TickValue,DefaultTickLabelFunction[TickValue]]],
-					 ""
-					   ];
+		       (* construct label, or null string if it should be suppressed -- if: tick labels shown, *minor* tick labels shown, tick is in TickLabelRange; will only then be used if tick is also in TickRange *)
+		       TickLabel=If[
+			 (ShowTickLabels/.FullOpts)&&(ShowMinorTickLabels/.FullOpts)
+			 &&ApproxInRange[(TickLabelRange/.FullOpts),TickValue],
+			 TickLabelStyleWrapper[UsedTickLabelFunction[TickValue,DefaultTickLabelFunction[TickValue]]],
+			 ""
+				 ];
 
-				 (* make tick *)
-				 {TickPosition,TickLabel,TickLength,TickStyle},
+		       (* make tick *)
+		       {TickPosition,TickLabel,TickLength,TickStyle},
 
-				 {i,1,Length[MinorCoordList]}
-			 ],
-			 {}
-		      ];
+		       {i,1,Length[MinorCoordList]}
+		     ],
+		     {}
+		  ];
 
-	(* combine tick lists*)
-	If[
-		(Debug/.FullOpts),
-		Print[RawMajorCoordList];
-		Print[RawMinorCoordList];
-		Print[Join[MajorTickList,MinorTickList]]
-	];
+    (* combine tick lists*)
+    If[
+      (Debug/.FullOpts),
+      Print[RawMajorCoordList];
+      Print[RawMinorCoordList];
+      Print[Join[MajorTickList,MinorTickList]]
+    ];
 
-	Join[MajorTickList,MinorTickList]
+    Join[MajorTickList,MinorTickList]
 
-								 ];
+  ];
 
 
 LinTicks[x1_?NumericQ,x2_?NumericQ,Opts___?OptionQ]:=Module[
-	{UsedRange,DummyGraphics,TickList,MajorCoordList,MinorCoordList,x},
+  {UsedRange,DummyGraphics,TickList,MajorCoordList,MinorCoordList,x},
 
-	(* extend any round-number range by a tiny amount *)
-	(* this seems to make Mathematica 4.1 give a much cleaner, sparser set of ticks *)
-	UsedRange=If[
-		And@@ApproxIntegerQ/@{x1,x2},
-		ExtendRange[{x1,x2},{1*^-5,1*^-5}],
-		{x1,x2}
-		  ]; 
+  (* extend any round-number range by a tiny amount *)
+  (* this seems to make Mathematica 4.1 give a much cleaner, sparser set of ticks *)
+  UsedRange=If[
+    And@@ApproxIntegerQ/@{x1,x2},
+    ExtendRange[{x1,x2},{1*^-5,1*^-5}],
+    {x1,x2}
+	    ]; 
 
-	(* extract raw tick coordinates from Mathematica *)
-	(* Line[{}] primative since Mathematica 6 requires nonnull primative list in Graphics for suitable ticks to be produced -- reported by J. Grosse *)
-	DummyGraphics=Show[Graphics[{Line[{}]}],PlotRange->{UsedRange,Automatic},DisplayFunction->Identity];
-	TickList=First[Ticks/.AbsoluteOptions[DummyGraphics,Ticks]];
-	MajorCoordList=Cases[TickList,{x_,_Real,___}:>x];
-	MinorCoordList=Cases[TickList,{x_,"",___}:>x];
+  (* extract raw tick coordinates from Mathematica *)
+  (* Line[{}] primative since Mathematica 6 requires nonnull primative list in Graphics for suitable ticks to be produced -- reported by J. Grosse *)
+  DummyGraphics=Show[Graphics[{Line[{}]}],PlotRange->{UsedRange,Automatic},DisplayFunction->Identity];
+  TickList=First[Ticks/.AbsoluteOptions[DummyGraphics,Ticks]];
+  MajorCoordList=Cases[TickList,{x_,_Real,___}:>x];
+  MinorCoordList=Cases[TickList,{x_,"",___}:>x];
 
-	(* generate formatted tick mark specifications *)
-	LinTicks[MajorCoordList,MinorCoordList,Opts]
+  (* generate formatted tick mark specifications *)
+  LinTicks[MajorCoordList,MinorCoordList,Opts]
 						     ]
 
 
-LinTicks[x1_?NumericQ,x2_?NumericQ,Spacing_?NumericQ,MinorSubdivs:_Integer,Opts___]:=Module[
-	{
-		FullOpts= Flatten[{Opts,Options[LinTicks]}],
-		MaxMajorIndex,
-		MajorCoordList,MinorCoordList
-	},
+LinTicks[x1_?NumericQ,x2_?NumericQ,Spacing_?NumericQ,MinorSubdivs:_Integer,Opts___]:=
+  Module[
+    {
+      FullOpts= Flatten[{Opts,Options[LinTicks]}],
+      MaxMajorIndex,
+      MajorCoordList,MinorCoordList
+    },
 
-	(* preliminary calculations  *)
-	MaxMajorIndex=Round[(x2-x1)/Spacing];
+    (* preliminary calculations  *)
+    MaxMajorIndex=Round[(x2-x1)/Spacing];
 
-	(* construct table of ticks --indexed by MajorIndex=0,1,...,MaxMajorTick and MinorIndex=0,...,MinorSubdivs-1, where MinorIndex=0 gives the major tick, 
+    (* construct table of ticks --indexed by MajorIndex=0,1,...,MaxMajorTick and MinorIndex=0,...,MinorSubdivs-1, where MinorIndex=0 gives the major tick, 
 except no minor ticks after last major tick *)
-	MajorCoordList=Flatten[Table[
-		N[x1+MajorIndex*Spacing+MinorIndex*Spacing/MinorSubdivs],
-		{MajorIndex,0,MaxMajorIndex},{MinorIndex,0,0}
-		       ]];
-	MinorCoordList=Flatten[Table[
-		If[
-			InRange[MinorTickIndexRange/.FullOpts,MinorIndex],
-			N[x1+MajorIndex*Spacing+((MinorTickIndexTransformation/.FullOpts)@MinorIndex)*Spacing/MinorSubdivs],
-			{}
-		],
-		{MajorIndex,0,MaxMajorIndex},{MinorIndex,1,MinorSubdivs-1}
-		       ]];
+    MajorCoordList=Flatten[Table[
+      N[x1+MajorIndex*Spacing+MinorIndex*Spacing/MinorSubdivs],
+      {MajorIndex,0,MaxMajorIndex},{MinorIndex,0,0}
+		   ]];
+    MinorCoordList=Flatten[Table[
+      If[
+	InRange[MinorTickIndexRange/.FullOpts,MinorIndex],
+	N[x1+MajorIndex*Spacing+((MinorTickIndexTransformation/.FullOpts)@MinorIndex)*Spacing/MinorSubdivs],
+	{}
+      ],
+      {MajorIndex,0,MaxMajorIndex},{MinorIndex,1,MinorSubdivs-1}
+		   ]];
 
-	(* there are usually ticks to be suppressed at the upper end, since the major tick index rounds up to the next major tick (for safety in borderline cases where truncation might fail), and the loop minor tick index iterates for a full series of minor ticks even after the last major tick *)
-	MajorCoordList=Select[MajorCoordList,ApproxInRange[{x1,x2},#]&];
-	MinorCoordList=Select[MinorCoordList,ApproxInRange[{x1,x2},#]&];
+    (* there are usually ticks to be suppressed at the upper end, since the major tick index rounds up to the next major tick (for safety in borderline cases where truncation might fail), and the loop minor tick index iterates for a full series of minor ticks even after the last major tick *)
+    MajorCoordList=Select[MajorCoordList,ApproxInRange[{x1,x2},#]&];
+    MinorCoordList=Select[MinorCoordList,ApproxInRange[{x1,x2},#]&];
 
-	LinTicks[MajorCoordList,MinorCoordList,Opts]
+    LinTicks[MajorCoordList,MinorCoordList,Opts]
 
-										     ];
+  ];
 
 
 (****************************************************************
@@ -594,59 +610,70 @@ Minor tick calculation
  *)
 
 
-Options[LogTicks]={ExtraTicks->{},TickPreTransformation->Identity,TickPostTransformation->Identity,ShowFirst->True,ShowLast->True,ShowTickLabels->True,ShowMinorTicks->True,TickLabelStart->0,TickLabelStep->1,TickRange->{-Infinity,Infinity},TickLabelRange->{-Infinity,Infinity},DecimalDigits->Automatic,MajorTickLength->0.010,MinorTickLength->0.005,TickLengthScale->1,TickDirection->In,TickReverse->False,MajorTickStyle->{},MinorTickStyle->{},MinorTickIndexRange->{1,Infinity},LogPlot->False};
+Options[LogTicks]={
+  ExtraTicks->{},TickPreTransformation->Identity,TickPostTransformation->Identity,
+  ShowFirst->True,ShowLast->True,ShowTickLabels->True,ShowMinorTicks->True,
+  TickLabelStart->0,TickLabelStep->1,TickRange->{-Infinity,Infinity},TickLabelRange->{-Infinity,Infinity},
+  DecimalDigits->Automatic,
+  MajorTickLength->0.010,MinorTickLength->0.005,TickLengthScale->1,TickDirection->In,TickReverse->False,
+  MajorTickStyle->{},MinorTickStyle->{},MinorTickIndexRange->{1,Infinity},LogPlot->False
+};
 
 
 LogTicks::oldsyntax="The number of minor subdivisions no longer needs to be specified for LogTicks (see CustomTicks manual for new syntax).";LogTicks::minorsubdivs="Number of minor subdivisions `1` specified for LogTicks is not 1 or \[LeftCeiling]base\[RightCeiling]-1 (i.e., \[LeftCeiling]base\[RightCeiling]-2 tick marks) and so is being ignored.";
-LogTicks[Base:(_?NumericQ):10,p1Raw_?NumericQ,p2Raw_?NumericQ,Opts___?OptionQ]:=Module[
-	{
-		FullOpts= Flatten[{Opts,Options[LogTicks]}],
-		p1,p2,BaseSymbol,MinorSubdivs,
-		UsedArgumentTransform,UsedPostTransformation
-	},
+LogTicks[Base:(_?NumericQ):10,p1Raw_?NumericQ,p2Raw_?NumericQ,Opts___?OptionQ]:=
+  Module[
+    {
+      FullOpts= Flatten[{Opts,Options[LogTicks]}],
+      p1,p2,BaseSymbol,MinorSubdivs,
+      UsedArgumentTransform,UsedPostTransformation
+    },
 
-	(* for use with LogPlot: scale input arguments from true values down to log *)
-	UsedArgumentTransform=Switch[
-		(LogPlot/.FullOpts),
-		True,
-		Log[Base, #]&,
-		   E|False,
-		Identity
-			      ];
-	(* for use with LogPlot: scale coordinate back up from log to true value *)
-	UsedPostTransformation =Switch[
-		(LogPlot/.FullOpts),
-		(* direct use with LogPlot -- will be rescaled by LogPlot *)
-		True, Composition[(TickPostTransformation/.FullOpts),(Base^#&)],
-		(* use with Graphics results of LogPlot -- done base E *)
-		(* more generally, would multiply by Log[plotbase,labelbase] *)
-		E,
-		Composition[(TickPostTransformation/.FullOpts),(Log[10]*#&)],
-		(* standard use on plot in which coordinates are logs base 10 *)
-		False,
-		(TickPostTransformation/.FullOpts)
-				];
+    (* for use with LogPlot: scale input arguments from true values down to log *)
+    UsedArgumentTransform=Switch[
+      (LogPlot/.FullOpts),
+      True,
+      Log[Base, #]&,
+	 E|False,
+      Identity
+			  ];
+    (* for use with LogPlot: scale coordinate back up from log to true value *)
+    UsedPostTransformation =Switch[
+      (LogPlot/.FullOpts),
+      (* direct use with LogPlot -- will be rescaled by LogPlot *)
+      True, Composition[(TickPostTransformation/.FullOpts),(Base^#&)],
+      (* use with Graphics results of LogPlot -- done base E *)
+      (* more generally, would multiply by Log[plotbase,labelbase] *)
+      E,
+      Composition[(TickPostTransformation/.FullOpts),(Log[10]*#&)],
+      (* standard use on plot in which coordinates are logs base 10 *)
+      False,
+      (TickPostTransformation/.FullOpts)
+			    ];
 
-	p1=Floor[UsedArgumentTransform@p1Raw];
-	p2=Ceiling[UsedArgumentTransform@p2Raw];
+    p1=Floor[UsedArgumentTransform@p1Raw];
+    p2=Ceiling[UsedArgumentTransform@p2Raw];
 
-	BaseSymbol=If[Base===E,Style["e",FontFamily->"Italic"],Base];
-	MinorSubdivs=Ceiling[Base]-1; (* one more than minor ticks *)
-	MinorSubdivs=Max[MinorSubdivs,1]; (* prevent underflow from bases less than 2 *)
-	LinTicks[p1,p2,1,MinorSubdivs,
-		 TickPostTransformation->UsedPostTransformation,
-		 TickLabelFunction->(DisplayForm[SuperscriptBox[BaseSymbol,IntegerPart[#]]]&),
-		 MinorTickIndexTransformation->(Log[Base,#+1]*MinorSubdivs&),
-		 FullOpts (* pass through to LinTicks*)
-	]
+    BaseSymbol=If[Base===E,Style["e",FontFamily->"Italic"],Base];
+    MinorSubdivs=Ceiling[Base]-1; (* one more than minor ticks *)
+    MinorSubdivs=Max[MinorSubdivs,1]; (* prevent underflow from bases less than 2 *)
+    LinTicks[p1,p2,1,MinorSubdivs,
+	     TickPostTransformation->UsedPostTransformation,
+	     TickLabelFunction->(DisplayForm[SuperscriptBox[BaseSymbol,IntegerPart[#]]]&),
+	     MinorTickIndexTransformation->(Log[Base,#+1]*MinorSubdivs&),
+	     FullOpts (* pass through to LinTicks*)
+    ]
 
-										];
+  ];
 
 
 (* syntax traps for old syntax -- but will not catch usual situation in which base was unspecified but subdivs was *)
-LogTicks[Base_?NumericQ,p1_Integer,p2_Integer,MinorSubdivs_Integer,Opts___?OptionQ]/;(MinorSubdivs==Max[Ceiling[Base]-1,1]):=(Message[LogTicks::oldsyntax];LogTicks[Base,p1,p2,ShowMinorTicks->True,Opts]);
-LogTicks[Base_?NumericQ,p1_Integer,p2_Integer,MinorSubdivs_Integer,Opts___?OptionQ]/;(MinorSubdivs==1):=(Message[LogTicks::oldsyntax];LogTicks[Base,p1,p2,ShowMinorTicks->False,Opts]);
-LogTicks[Base_?NumericQ,p1_Integer,p2_Integer,MinorSubdivs_Integer,Opts___?OptionQ]/;((MinorSubdivs!=Max[Ceiling[Base]-1,1])&&(MinorSubdivs!=1)):=(Message[LogTicks::oldsyntax];Message[LogTicks::minorsubdivs,MinorSubdivs];LogTicks[Base,p1,p2,ShowMinorTicks->True,Opts]);
+LogTicks[Base_?NumericQ,p1_Integer,p2_Integer,MinorSubdivs_Integer,Opts___?OptionQ]/;(MinorSubdivs==Max[Ceiling[Base]-1,1]):=
+  (Message[LogTicks::oldsyntax];LogTicks[Base,p1,p2,ShowMinorTicks->True,Opts]);
+LogTicks[Base_?NumericQ,p1_Integer,p2_Integer,MinorSubdivs_Integer,Opts___?OptionQ]/;(MinorSubdivs==1):=
+  (Message[LogTicks::oldsyntax];LogTicks[Base,p1,p2,ShowMinorTicks->False,Opts]);
+LogTicks[Base_?NumericQ,p1_Integer,p2_Integer,MinorSubdivs_Integer,Opts___?OptionQ]/;((MinorSubdivs!=Max[Ceiling[Base]-1,1])&&(MinorSubdivs!=1)):=
+  (Message[LogTicks::oldsyntax];Message[LogTicks::minorsubdivs,MinorSubdivs];LogTicks[Base,p1,p2,ShowMinorTicks->True,Opts]);
 
 
 (****************************************************************
@@ -657,44 +684,50 @@ augmentation of tick specifications
 (* Plain coordinate is upgraded to coordinate in list *)
 
 
-AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,x_?NumericQ]:=AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x}];
+AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,x_?NumericQ]:=
+  AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x}];
 
 
 (* Wrapped coordinate is given label *)
 
 
-AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ}]:=AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelFunction@x}];
+AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ}]:=
+  AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelFunction@x}];
 
 
 (* Coordinate + label is given length list *)
 
 
-AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ,LabelText_}]:=AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelText,DefaultLength}];
+AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ,LabelText_}]:=
+  AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelText,DefaultLength}];
 
 
 (* Any tick with just plength is upgraded to having length list *)
 
 
-AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ,LabelText_,PLen_?NumericQ,RestSeq___}]:=AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelText,{PLen,0},RestSeq}];
+AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ,LabelText_,PLen_?NumericQ,RestSeq___}]:=
+  AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelText,{PLen,0},RestSeq}];
 
 
 (* Coordinate + label + length list is given style *)
 
 
-AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ,LabelText_,LengthList_List}]:=AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelText,LengthList,DefaultStyle}];
+AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,{x_?NumericQ,LabelText_,LengthList_List}]:=
+  AugmentTick[LabelFunction,DefaultLength,DefaultStyle,{x,LabelText,LengthList,DefaultStyle}];
 
 
 (* Release a complete tick *)
 
 
-AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,TheTick:{x_?NumericQ,LabelText_,LengthList_List,Style_List}]:=TheTick;
+AugmentTick[LabelFunction_,DefaultLength_List,DefaultStyle_List,TheTick:{x_?NumericQ,LabelText_,LengthList_List,Style_List}]:=
+  TheTick;
 
 
 (* Process full list *)
 
 
 AugmentTicks[DefaultLength_List,DefaultStyle_List,TickList_List]:=
-	AugmentTick[""&,DefaultLength,DefaultStyle,#]&/@TickList;
+  AugmentTick[""&,DefaultLength,DefaultStyle,#]&/@TickList;
 
 
 (****************************************************************
@@ -710,17 +743,19 @@ Does not handle plain Automatic
 
 
 AugmentAxisTickOptions::numaxes="Tick lists specified for more than `1` axes.";
-AugmentAxisTickOptions[NumAxes_Integer,TickLists:None]:=Table[{},{NumAxes}];
-AugmentAxisTickOptions[NumAxes_Integer,TickLists_List]:=Module[
-	{},
-	If[
-		NumAxes<Length[TickLists],
-		Message[AugmentAxisTickOptions::numaxes,NumAxes]
-	];
-	Join[
-		Replace[TickLists,{None->{}},{1}],
-		Table[{},{NumAxes-Length[TickLists]}]
-	]];
+AugmentAxisTickOptions[NumAxes_Integer,TickLists:None]:=
+  Table[{},{NumAxes}];
+AugmentAxisTickOptions[NumAxes_Integer,TickLists_List]:=
+  Module[
+    {},
+    If[
+      NumAxes<Length[TickLists],
+      Message[AugmentAxisTickOptions::numaxes,NumAxes]
+    ];
+    Join[
+      Replace[TickLists,{None->{}},{1}],
+      Table[{},{NumAxes-Length[TickLists]}]
+  ]];
 
 
 (****************************************************************
@@ -748,49 +783,56 @@ Test code:
  *)
 
 
-TickPattern=(_?NumericQ)|{_?NumericQ}|{_?NumericQ,_}|{_?NumericQ,_,(_?NumericQ)|{_?NumericQ,_?NumericQ}}|{_?NumericQ,_,(_?NumericQ)|{_?NumericQ,_?NumericQ},_List};
+TickPattern=(
+  (_?NumericQ)
+|{_?NumericQ}|{_?NumericQ,_}|{_?NumericQ,_,(_?NumericQ)|{_?NumericQ,_?NumericQ}}|{_?NumericQ,_,(_?NumericQ)|{_?NumericQ,_?NumericQ},_List}
+ );
+ 
+
+ TickQ[x_]:=MatchQ[x,TickPattern];
+ TickListQ[x_]:=MatchQ[x,{}|{TickPattern..}];
 
 
-TickQ[x_]:=MatchQ[x,TickPattern];
-TickListQ[x_]:=MatchQ[x,{}|{TickPattern..}];
+ (****************************************************************
+  * Tick list manipulation
+  ****************************************************************)
 
 
-(****************************************************************
-Tick list manipulation
- ****************************************************************)
+ LimitTickRange[Range:{x1_,x2_},TickList_List]:=Cases[TickList,((x_?NumericQ)|{x_,___})/;ApproxInRange[{x1,x2},x]];
 
 
-LimitTickRange[Range:{x1_,x2_},TickList_List]:=Cases[TickList,((x_?NumericQ)|{x_,___})/;ApproxInRange[{x1,x2},x]];
+ LimitTickLabelRange[Range:{x1_,x2_},TickList_List]:=
+  Union[
+    Cases[TickList,x_?NumericQ],  (* bare number *)
+    Cases[TickList,{x_}],  (* no label given *)
+    Cases[TickList,{x_,l_,r___}/;ApproxInRange[{x1,x2},x]], (* label -- retain *)
+    Cases[TickList,{x_,l_,r___}/;!ApproxInRange[{x1,x2},x]:>{x,"",r}
+    ]  (* label -- strip *)
+  ];
 
 
-LimitTickLabelRange[Range:{x1_,x2_},TickList_List]:=Union[
-	Cases[TickList,x_?NumericQ],  (* bare number *)
-	Cases[TickList,{x_}],  (* no label given *)
-	Cases[TickList,{x_,l_,r___}/;ApproxInRange[{x1,x2},x]], (* label -- retain *)
-	Cases[TickList,{x_,l_,r___}/;!ApproxInRange[{x1,x2},x]:>{x,"",r}
-	]  (* label -- strip *)
-						    ];
+ StripTickLabels[TickList_List]:=
+  Replace[TickList,{x_,l_,r___}:>{x,"",r},{1}];
+ StripTickLabels[f_Symbol]:=
+  Composition[StripTickLabels,f];
 
 
-StripTickLabels[TickList_List]:=Replace[TickList,{x_,l_,r___}:>{x,"",r},{1}];
-StripTickLabels[f_Symbol]:=Composition[StripTickLabels,f];
+ TransformTicks[PosnTransformation_,LengthTransformation_,TickList_List]:=
+  Replace[TickList,{x_,t_,l:{_,_},RestSeq___}:>{PosnTransformation@x,t,LengthTransformation/@l,RestSeq},{1}];
 
 
-TransformTicks[PosnTransformation_,LengthTransformation_,TickList_List]:=Replace[TickList,{x_,t_,l:{_,_},RestSeq___}:>{PosnTransformation@x,t,LengthTransformation/@l,RestSeq},{1}];
+ (****************************************************************
+  * End private context
+  ****************************************************************)
 
 
-(****************************************************************
-End private context
- ****************************************************************)
+ End[];
 
 
-End[];
+ (****************************************************************
+  * End package
+  ****************************************************************)
 
 
-(****************************************************************
-End package
- ****************************************************************)
-
-
-Protect[Evaluate[$Context<>"*"]];
-EndPackage[];
+ Protect[Evaluate[$Context<>"*"]];
+ EndPackage[];
