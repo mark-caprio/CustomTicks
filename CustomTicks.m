@@ -223,15 +223,30 @@ FractionDigits[x_?NumericQ,Opts___?OptionQ]:=
 
 FixedPointForm::leftdigits="Insufficient left digits (`1`) specified for formatting of number (`2`).  Consider using automatic version FixedPointForm[x,r].";FixedPointForm::numbersigns="Unsupported form of NumberSigns.";
 Options[FixedPointForm]={NumberSigns->{"-",""},NumberPoint->".",SignPadding->False,Debug->False};
+(* TODO: NumberForm takes NumberPadding -> {"0", ""} default {"","0"} , but we want to zero pad when SignPadding->True
+ or perhaps NumberPadding->True*)
 FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?OptionQ]:=
   Module[
     {
       FullOpts=Flatten[{Opts,Options[FixedPointForm]}],
-      sx,mx,SignString,LeftDigits,RightDigits,SeparatorString,SignChars,PaddingChars,
+      sx,mx,SignString,LeftDigits,RightDigits,SeparatorChars,SignChars,PaddingChars,
       NaturalLeftDigits,
       PartialSigns,FullSigns,
       AutoOpts
     },
+
+    (* option-based setup *)
+    (* deduce character lists for -/+ signs, space padded to same length *)
+    FullSigns=Switch[
+      (NumberSigns/.FullOpts),
+      Automatic,{{"-"},{}},
+      {_String,_String},
+      PartialSigns=Characters/@(NumberSigns/.FullOpts);
+      PadLeft[#,Max[Length/@PartialSigns]," "]&/@PartialSigns,
+      _,Message[FixedPointForm::numbersigns];{{"-"},{" "}}
+	      ];
+
+    (* extract basic information on natural representation of number *)
     sx=Sign[x];
     mx=Abs[N[x]];
     (*LeftDigits=IntegerDigits[IntegerPart[mx]];*)
@@ -245,19 +260,13 @@ FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?
       (Debug/.FullOpts),
       Print[{x,l,r},": ",{sx,mx,LeftDigits,RightDigits}]
     ];
-    SeparatorString=If[r==0,"",(NumberPoint/.FullOpts)];
     NaturalLeftDigits=Length[LeftDigits];
     If[l<NaturalLeftDigits,
        Message[FixedPointForm::leftdigits,l,x]
     ];
-    FullSigns=Switch[
-      (NumberSigns/.FullOpts),
-      Automatic,{{"-"},{}},
-      {_String,_String},
-      PartialSigns=Characters/@(NumberSigns/.FullOpts);
-      PadLeft[#,Max[Length/@PartialSigns]," "]&/@PartialSigns,
-      _,Message[FixedPointForm::numbersigns];{{"-"},{" "}}
-	      ];
+
+    (* construct character representation *)
+    SeparatorChars=If[r==0,{},{(NumberPoint/.FullOpts)}];
     SignChars=Switch[
       sx,
       -1,First[FullSigns],
@@ -268,7 +277,7 @@ FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?
       False,PadLeft[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "],
       True,PadRight[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "]
 		 ];
-    StringJoin@@Join[PaddingChars,ToString/@LeftDigits,{SeparatorString},ToString/@RightDigits]
+    StringJoin@@Join[PaddingChars,ToString/@LeftDigits,SeparatorChars,ToString/@RightDigits]
   ];
 FixedPointForm[x_?NumberQ,RightDigits_Integer?NonNegative,Opts___?OptionQ]:=
   FixedPointForm[x,{Length[IntegerDigits[IntegerPart[N[x]]]],RightDigits},Opts];
