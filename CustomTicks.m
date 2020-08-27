@@ -4,9 +4,9 @@
 (* :Context: CustomTicks` *)
 (* :Author: Mark A. Caprio, Department of Physics, University of Notre Dame *)
 (* :Summary: Custom tick mark generation for linear, log, and general nonlinear axes. *)
-(* :Copyright: Copyright 2016, Mark A. Caprio *)
-(* :Package Version: 2.1.0 *)
-(* :Mathematica Version: 6.0 *)
+(* :Copyright: Copyright 2020, Mark A. Caprio *)
+(* :Package Version: 2.1.1 *)
+(* :Mathematica Version: 12.0 *)
 (* :History:
   MCAxes package, January 10, 2003.
   MCAxes and then MCTicks packages distributed as part of LevelScheme, 2004.
@@ -28,6 +28,7 @@
   V1.90. October 6, 2014. Pass through of options to FixedPointForm from LinTicks, to allow easier control over sign formatting in ticks.
   V2.0.0. March 1, 2015. Add support for minor tick labels: option ShowMinorTickLabels, MinorTickLabelStyle.
   V2.1.0. March 12, 2016. Convert to standalone .m file (as opposed to autogeneration from notebook) and move text comments into .m file.
+  V2.1.1. August 26, 2020. Documentation update (FrameTicks syntax in examples).
  *)
 (* :Notes:
 
@@ -39,24 +40,19 @@
 
     http://scidraw.nd.edu  
 
-    http://library.wolfram.com/infocenter/Demos/5599
+    https://library.wolfram.com/infocenter/MathSource/5599/
 
     https://github.com/mark-caprio/CustomTicks
 
-  Undocumented:
-
-    MinorTickLabelStyle -> None
-
+  
   TODO:
-   Implement TickLabelStyle (after pattern of MinorTickLabelStyle) with suitable fall-through for minor ticks.
    Revise MajorTickX/MinorTickX options to TickX/MinorTickX with suitable fall-through for minor ticks.
+     => Implement TickLabelStyle (after pattern of MinorTickLabelStyle) with suitable fall-through for minor ticks.
    Provide option-based syntax for specifying minor tick subdivisions (Karolis Misiunas 140905).
    Consider changing default tick length.
-   Expand coverage of non-SciDraw log plots in documentation (Qian Li 150416).
-   Replace old FrameTicks syntax (Gabriel Landi 150825).
+   Add examples for minor tick labels.
 
-  Acknowledgements for bug reports and suggestions: Johannes Grosse,
- Will Robertson, Robert Collyer, Karolis Misiunas, Sebastian Schott
+  Acknowledgements for bug reports and suggestions: Johannes Grosse, Will Robertson, Robert Collyer, Karolis Misiunas, Sebastian Schott, Qian Li, Gabriel Landi, Nate Bode.
 
  *)
 
