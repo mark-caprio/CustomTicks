@@ -29,6 +29,7 @@
   V2.0.0. March 1, 2015. Add support for minor tick labels: option ShowMinorTickLabels, MinorTickLabelStyle.
   V2.1.0. March 12, 2016. Convert to standalone .m file (as opposed to autogeneration from notebook) and move text comments into .m file.
   V2.1.1. August 26, 2020. Documentation update (FrameTicks syntax in examples).
+  CURRENT. Add NumberPadding option for FixedPointForm.
  *)
 (* :Notes:
 
@@ -111,7 +112,15 @@ MinorTickIndexTransformation::usage="Option for LinTicks.";
 TickLabelStyle::usage="Option for LinTicks.  (NOT IMPLEMENTED)";
 MinorTickLabelStyle::usage="Option for LinTicks.";
 
-FixedPointForm::usage="FixedPointForm[x,r] formats x with r digits to the right of the decimal point.  It allows as many digits as necessary to the left of the decimal point, thereby avoiding the rounding problem associated with PaddedForm[x,{n,f}] when n is specified too small (PaddedForm zeros out some of the rightmost digits of the number).  It also suppresses any trailing decimal point when r=0.  FixedPointForm[x,{l,r}] formats x as a fixed-point number with l digits (or spaces) to the left and r to the right of the decimal point.  FixedPointForm respects the standard Mathematica numerical formatting options NumberSigns, NumberPoint, and SignPadding.  By default, for positive numbers a blank padding space appears at left (where a minus sign would be for negative numbers), but with NumberSigns->Automatic this space is suppressed.";
+FixedPointForm::usage="FixedPointForm[x,r] formats x with r digits to the right of the decimal point.  "<>
+"It allows as many digits as necessary to the left of the decimal point, thereby avoiding the rounding problem "<>
+"associated with PaddedForm[x,{n,f}] when n is specified too small (PaddedForm zeros out some of the rightmost "<>
+"digits of the number).  It also suppresses any trailing decimal point when r=0.  FixedPointForm[x,{l,r}] formats x"<>
+"as a fixed-point number with l digits (or spaces) to the left and r to the right of the decimal point.  FixedPointForm "<>
+"respects the standard Mathematica numerical formatting options NumberSigns, NumberPoint, and SignPadding.  By default, "<>
+"for positive numbers a blank padding space appears at left (where a minus sign would be for negative numbers), but with "<>
+"NumberSigns->Automatic this space is suppressed.";
+
 FractionDigits::usage="FractionDigits[x] returns the number of digits to the right of the point in the decimal representation of x.  It will return large values, determined by Precision, for some numbers, e.g., non-terminating rationals.";
 FractionDigitsBase::usage="Option for FractionDigits.";
 
@@ -217,16 +226,16 @@ FractionDigits[x_?NumericQ,Opts___?OptionQ]:=
 (* fixed-point decimal notation *)
 
 
-FixedPointForm::leftdigits="Insufficient left digits (`1`) specified for formatting of number (`2`).  Consider using automatic version FixedPointForm[x,r].";FixedPointForm::numbersigns="Unsupported form of NumberSigns.";
-Options[FixedPointForm]={NumberSigns->{"-",""},NumberPoint->".",SignPadding->False,Debug->False};
-(* TODO: NumberForm takes NumberPadding -> {"0", ""} default {"","0"} , but we want to zero pad when SignPadding->True
- or perhaps NumberPadding->True*)
+FixedPointForm::leftdigits="Insufficient left digits (`1`) specified for formatting of number (`2`).  Consider using automatic version FixedPointForm[x,r].";
+FixedPointForm::numbersigns="Unsupported form of NumberSigns.";
+FixedPointForm::numberpadding="Unsupported form of NumberPadding.";
+Options[FixedPointForm]={NumberSigns->{"-",""},NumberPoint->".",SignPadding->False,NumberPadding->" ",Debug->False};
 FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?OptionQ]:=
   Module[
     {
       FullOpts=Flatten[{Opts,Options[FixedPointForm]}],
       sx,mx,SignString,LeftDigits,RightDigits,SeparatorChars,SignChars,PaddingChars,
-      NaturalLeftDigits,
+      NaturalLeftDigits,LeftPaddingChar,
       PartialSigns,FullSigns,
       AutoOpts
     },
@@ -242,6 +251,16 @@ FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?
       _,Message[FixedPointForm::numbersigns];{{"-"},{" "}}
 	      ];
 
+    (* Note: NumberForm takes NumberPadding -> {"0", ""} default {"","0"}.  But,
+    for us, right padding is meaningless, since number of digits on right is fixed
+    (i.e., we implicitly zero pad).  So we insteawd accept NumberPadding, default
+    NumberPadding->" ", or NumberPadding->"0" for left zero-padding.*)
+    LeftPaddingChar=Switch[
+      (NumberPadding/.FullOpts),
+      " "|"0",(NumberPadding/.FullOpts),
+      _,Message[FixedPointForm::numberpadding];" "
+                    ];
+       
     (* extract basic information on natural representation of number *)
     sx=Sign[x];
     mx=Abs[N[x]];
@@ -270,8 +289,8 @@ FixedPointForm[x_?NumberQ,{l_Integer?NonNegative,r_Integer?NonNegative},Opts___?
 	      ];
     PaddingChars=Switch[
       SignPadding/.FullOpts,
-      False,PadLeft[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "],
-      True,PadRight[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]]," "]
+      False,PadLeft[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]],LeftPaddingChar],
+      True,PadRight[SignChars,Max[l+Length[SignChars]-NaturalLeftDigits,Length[SignChars]],LeftPaddingChar]
 		 ];
     StringJoin@@Join[PaddingChars,ToString/@LeftDigits,SeparatorChars,ToString/@RightDigits]
   ];
