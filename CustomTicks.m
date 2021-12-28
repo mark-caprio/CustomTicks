@@ -29,7 +29,7 @@
   V2.0.0. March 1, 2015. Add support for minor tick labels: option ShowMinorTickLabels, MinorTickLabelStyle.
   V2.1.0. March 12, 2016. Convert to standalone .m file (as opposed to autogeneration from notebook) and move text comments into .m file.
   V2.1.1. August 26, 2020. Documentation update (FrameTicks syntax in examples).
-  CURRENT. Add NumberPadding option for FixedPointForm.
+  CURRENT. Add NumberPadding option for FixedPointForm. Fix LinTicks automatic tick generation under Mathematica 13.0.
  *)
 (* :Notes:
 
@@ -53,7 +53,7 @@
    Consider changing default tick length.
    Add examples for minor tick labels.
 
-  Acknowledgements for bug reports and suggestions: Johannes Grosse, Will Robertson, Robert Collyer, Karolis Misiunas, Sebastian Schott, Qian Li, Gabriel Landi, Nate Bode.
+  Acknowledgements for bug reports and suggestions: Johannes Grosse, Will Robertson, Robert Collyer, Karolis Misiunas, Sebastian Schott, Qian Li, Gabriel Landi, Nate Bode, Davi Rodrigues.
 
  *)
 
@@ -552,29 +552,40 @@ LinTicks[RawMajorCoordList_List,RawMinorCoordList_List,Opts___]:=
 
   ];
 
+LinTicks[x1_?NumericQ,x2_?NumericQ,Opts___?OptionQ]:=
+  Module[
+    {UsedRange,DummyGraphics,TickList,MajorCoordList,MinorCoordList,x},
 
-LinTicks[x1_?NumericQ,x2_?NumericQ,Opts___?OptionQ]:=Module[
-  {UsedRange,DummyGraphics,TickList,MajorCoordList,MinorCoordList,x},
+    (* extend any round-number range by a tiny amount *)
+    (* this seems to make Mathematica 4.1 give a much cleaner, sparser set of ticks *)
+    UsedRange=
+    If[
+      And@@ApproxIntegerQ/@{x1,x2},
+      ExtendRange[{x1,x2},{1*^-5,1*^-5}],
+      {x1,x2}
+    ]; 
 
-  (* extend any round-number range by a tiny amount *)
-  (* this seems to make Mathematica 4.1 give a much cleaner, sparser set of ticks *)
-  UsedRange=If[
-    And@@ApproxIntegerQ/@{x1,x2},
-    ExtendRange[{x1,x2},{1*^-5,1*^-5}],
-    {x1,x2}
-	    ]; 
+    (* extract raw tick coordinates from Mathematica *)
+    (* Since Mathematica 6: Show[Graphics[]] requires Line[{}] primitive for
+    suitable ticks to be produced. -- reported by J. Grosse *)
+    (* Since Mathematica 13.0: Show[Graphics[]] requires Axes->True for ticks to
+    be produced.  Major ticks now have nonnull string label (rather than Real
+    label), while minor ticks still have null string label. -- reported by Davi
+    Rodrigues, https://github.com/mark-caprio/CustomTicks/issues/3 *)
+    
+    DummyGraphics
+    =Show[
+      Graphics[{Line[{}]}],
+      PlotRange->{UsedRange,Automatic},Axes->True,
+      DisplayFunction->Identity
+     ];
+    TickList=First[Ticks/.AbsoluteOptions[DummyGraphics,Ticks]];
+    MajorCoordList=Cases[TickList,{x_,_Real|Except["", _String],___}:>x];
+    MinorCoordList=Cases[TickList,{x_,"",___}:>x];
 
-  (* extract raw tick coordinates from Mathematica *)
-  (* Line[{}] primative since Mathematica 6 requires nonnull primative list in Graphics for suitable ticks to be produced -- reported by J. Grosse *)
-  DummyGraphics=Show[Graphics[{Line[{}]}],PlotRange->{UsedRange,Automatic},DisplayFunction->Identity];
-  TickList=First[Ticks/.AbsoluteOptions[DummyGraphics,Ticks]];
-  MajorCoordList=Cases[TickList,{x_,_Real,___}:>x];
-  MinorCoordList=Cases[TickList,{x_,"",___}:>x];
-
-  (* generate formatted tick mark specifications *)
-  LinTicks[MajorCoordList,MinorCoordList,Opts]
-						     ]
-
+    (* generate formatted tick mark specifications *)
+    LinTicks[MajorCoordList,MinorCoordList,Opts]
+  ];
 
 LinTicks[x1_?NumericQ,x2_?NumericQ,Spacing_?NumericQ,MinorSubdivs:_Integer,Opts___]:=
   Module[
@@ -633,7 +644,6 @@ Minor tick calculation
 	General numeric values are allowed for the lower and upper exponents, to support arbitrary argments which arise when used as automatic tick function in Ticks or FrameTicks option.
  *)
 
-
 Options[LogTicks]={
   ExtraTicks->{},TickPreTransformation->Identity,TickPostTransformation->Identity,
   ShowFirst->True,ShowLast->True,ShowTickLabels->True,ShowMinorTicks->True,
@@ -642,7 +652,6 @@ Options[LogTicks]={
   MajorTickLength->0.010,MinorTickLength->0.005,TickLengthScale->1,TickDirection->In,TickReverse->False,
   MajorTickStyle->{},MinorTickStyle->{},MinorTickIndexRange->{1,Infinity},LogPlot->False
 };
-
 
 LogTicks::oldsyntax="The number of minor subdivisions no longer needs to be specified for LogTicks (see CustomTicks manual for new syntax).";LogTicks::minorsubdivs="Number of minor subdivisions `1` specified for LogTicks is not 1 or \[LeftCeiling]base\[RightCeiling]-1 (i.e., \[LeftCeiling]base\[RightCeiling]-2 tick marks) and so is being ignored.";
 LogTicks[Base:(_?NumericQ):10,p1Raw_?NumericQ,p2Raw_?NumericQ,Opts___?OptionQ]:=
