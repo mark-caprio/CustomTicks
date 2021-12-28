@@ -29,7 +29,7 @@
   V2.0.0. March 1, 2015. Add support for minor tick labels: option ShowMinorTickLabels, MinorTickLabelStyle.
   V2.1.0. March 12, 2016. Convert to standalone .m file (as opposed to autogeneration from notebook) and move text comments into .m file.
   V2.1.1. August 26, 2020. Documentation update (FrameTicks syntax in examples).
-  CURRENT. Add NumberPadding option for FixedPointForm. Fix LinTicks automatic tick generation under Mathematica 13.0.
+  V2.1.2. December 28, 2021. Add NumberPadding option for FixedPointForm. Fix LinTicks automatic tick generation under Mathematica 13.0.
  *)
 (* :Notes:
 
